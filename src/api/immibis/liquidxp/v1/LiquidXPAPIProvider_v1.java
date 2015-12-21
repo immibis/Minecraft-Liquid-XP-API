@@ -1,6 +1,5 @@
 package api.immibis.liquidxp.v1;
 
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 /**
@@ -8,21 +7,15 @@ import net.minecraftforge.fluids.FluidStack;
  */
 public interface LiquidXPAPIProvider_v1 {
 	/**
-	 * Returns a short, human-readable name of this provider.
-	 * 
-	 * This may be used for configuration purposes - the user might need to select a provider
-	 * by specifying its name.
-	 * 
-	 * For ease of configuration, the name should not contain spaces.
-	 */
-	public String getName();
-
-	/**
 	 * Called to convert fluid into XP.
 	 * If this fluid does not represent an integer amount of XP, it should be rounded down.
 	 * 
-	 * Returns null if this is an unrecognized fluid. Otherwise, returns the amount of
-	 * XP contained in this fluid, and the amount of fluid that XP corresponds to
+	 * May not return null.
+	 * 
+	 * The parameter will ALWAYS be a recognized fluid (that isXPFluid returned true for, and that
+	 * this provider is registered for).
+	 * 
+	 * Returns the amount of XP contained in this fluid, and the amount of fluid that XP corresponds to
 	 * (which might be less, in case of rounding), even if those amounts are zero.
 	 */
 	public LiquidXPAPI_v1.FluidToXPResult convertFluidToXP(FluidStack fluid);
@@ -43,8 +36,11 @@ public interface LiquidXPAPIProvider_v1 {
 	public LiquidXPAPI_v1.XPToFluidResult convertXPToFluid(int xp);
 
 	/**
-	 * Returns true if the given fluid stack is recognized as an XP fluid.
+	 * Returns true if the given fluid stack is recognized as an XP fluid, ignoring the amount.
+	 * (Note: This may be called with a zero amount, or an amount less than one unit of XP)
+	 * 
+	 * The parameter will always be a fluid that this provider was registered for.
 	 */
-	public boolean isLiquidXP(Fluid fluid);
+	public boolean isXPFluid(FluidStack fluid);
 	
 }
