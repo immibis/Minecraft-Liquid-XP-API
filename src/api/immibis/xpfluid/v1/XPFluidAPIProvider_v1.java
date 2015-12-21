@@ -1,11 +1,11 @@
-package api.immibis.liquidxp.v1;
+package api.immibis.xpfluid.v1;
 
 import net.minecraftforge.fluids.FluidStack;
 
 /**
  * DO NOT MODIFY THIS FILE. EVER.
  */
-public interface LiquidXPAPIProvider_v1 {
+public interface XPFluidAPIProvider_v1 {
 	/**
 	 * Called to convert fluid into XP.
 	 * If this fluid does not represent an integer amount of XP, it should be rounded down.
@@ -18,7 +18,7 @@ public interface LiquidXPAPIProvider_v1 {
 	 * Returns the amount of XP contained in this fluid, and the amount of fluid that XP corresponds to
 	 * (which might be less, in case of rounding), even if those amounts are zero.
 	 */
-	public LiquidXPAPI_v1.FluidToXPResult convertFluidToXP(FluidStack fluid);
+	public XPFluidAPI_v1.FluidToXPResult convertFluidToXP(FluidStack fluid);
 	
 	/**
 	 * Called to convert XP into fluid.
@@ -33,7 +33,7 @@ public interface LiquidXPAPIProvider_v1 {
 	 * For efficiency purposes, the *fluid* returned may be null (meaning an empty fluid stack),
 	 * even though the result itself may not be.
 	 */
-	public LiquidXPAPI_v1.XPToFluidResult convertXPToFluid(int xp);
+	public XPFluidAPI_v1.XPToFluidResult convertXPToFluid(int xp);
 
 	/**
 	 * Returns true if the given fluid stack is recognized as an XP fluid, ignoring the amount.

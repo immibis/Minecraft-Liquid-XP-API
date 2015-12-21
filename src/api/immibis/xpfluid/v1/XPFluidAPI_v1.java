@@ -1,4 +1,4 @@
-package api.immibis.liquidxp.v1;
+package api.immibis.xpfluid.v1;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -9,21 +9,21 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 /**
- * Main entry point to the Liquid XP API.
+ * Main entry point to the XP Fluid API.
  * 
- * DO NOT MODIFY THIS FILE. EVER.
+ * DO NOT MODIFY THIS FILE. EVER. Except for comments.
  */
-public final class LiquidXPAPI_v1 {
-	private LiquidXPAPI_v1() {throw new RuntimeException();}
+public final class XPFluidAPI_v1 {
+	private XPFluidAPI_v1() {throw new RuntimeException();}
 	
-	private static Map<Fluid, LiquidXPAPIProvider_v1> providers = new IdentityHashMap<>();
+	private static Map<Fluid, XPFluidAPIProvider_v1> providers = new IdentityHashMap<>();
 	
 	/**
 	 * Call this during init to register your provider.
 	 * Calling it in preinit is discouraged unless you need to override another mod's provider
 	 * (registered in init) for some reason.
 	 */
-	public static void addProvider(final Fluid fluid, final LiquidXPAPIProvider_v1 provider) {
+	public static void addProvider(final Fluid fluid, final XPFluidAPIProvider_v1 provider) {
 		if(provider == null)
 			throw new IllegalArgumentException("provider is null");
 		if(fluid == null)
@@ -35,7 +35,7 @@ public final class LiquidXPAPI_v1 {
 		if(providers.containsKey(fluid))
 			throw new IllegalStateException("Fluid already registered: "+fluid+" ("+fluid.getName()+")");
 		
-		providers.put(fluid, new LiquidXPAPIProvider_v1() {
+		providers.put(fluid, new XPFluidAPIProvider_v1() {
 			@SuppressWarnings("deprecation")
 			@Override
 			public XPToFluidResult convertXPToFluid(int xp) {
@@ -133,7 +133,7 @@ public final class LiquidXPAPI_v1 {
 		if(xpAmount <= 0)
 			throw new IllegalArgumentException("xp amount "+xpAmount);
 		
-		LiquidXPAPIProvider_v1 provider = providers.get(targetFluid);
+		XPFluidAPIProvider_v1 provider = providers.get(targetFluid);
 		if(provider == null)
 			throw new IllegalArgumentException("Fluid not registered: "+targetFluid);
 
@@ -151,7 +151,7 @@ public final class LiquidXPAPI_v1 {
 	 * Returns null if this is not a recognized XP fluid.
 	 */
 	public static FluidToXPResult convertFluidToXP(FluidStack fluid) {
-		LiquidXPAPIProvider_v1 provider = providers.get(fluid.getFluid());
+		XPFluidAPIProvider_v1 provider = providers.get(fluid.getFluid());
 		if(provider != null) {
 			if(provider.isXPFluid(fluid)) {
 				return provider.convertFluidToXP(fluid);
@@ -164,7 +164,7 @@ public final class LiquidXPAPI_v1 {
 	 * Returns true if the given fluid stack is a recognized XP fluid.
 	 */
 	public static boolean isXPFluid(FluidStack fluid) {
-		LiquidXPAPIProvider_v1 provider = providers.get(fluid.getFluid());
+		XPFluidAPIProvider_v1 provider = providers.get(fluid.getFluid());
 		if(provider != null) {
 			return provider.isXPFluid(fluid);
 		}
