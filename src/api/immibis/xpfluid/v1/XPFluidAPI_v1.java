@@ -34,16 +34,17 @@ public final class XPFluidAPI_v1 {
 	private static Map<Fluid, XPFluidAPIProvider_v1> providers = new IdentityHashMap<>();
 	
 	private static XPFluidAPIProvider_v1 preferredProvider = null;
+	private static boolean preferredProviderSet = false;
 	
 	static {
 		FMLCommonHandler.instance().bus().register(new Object() {
 			@SubscribeEvent
 			public void resetDefaultFluid(FMLServerAboutToStartEvent evt) {
-				preferredProvider = null;
+				preferredProviderSet = false;
 			}
 			@SubscribeEvent
 			public void resetDefaultFluid(FMLNetworkEvent.ClientConnectedToServerEvent evt) {
-				preferredProvider = null;
+				preferredProviderSet = false;
 			}
 		});
 	}
@@ -69,18 +70,19 @@ public final class XPFluidAPI_v1 {
 	/**
 	 * Returns the provider that has been selected as the user's or modpack builder's favourite
 	 * type of XP fluid. This can be configured by setting preferredXPFluid in forge.cfg to the
-	 * name of a registered fluid. 
+	 * name of a registered fluid.
+	 * 
+	 * Note that this may return null!
 	 */
 	public static XPFluidAPIProvider_v1 getPreferredProvider() {
-		if(preferredProvider == null) {
+		if(!preferredProviderSet) {
 			if(!Loader.instance().hasReachedState(LoaderState.POSTINITIALIZATION))
 				throw new IllegalStateException("Preferred provider may be retrieved after init stage");
 			if(providers.size() == 0) {
 				return null;
 			}
 			preferredProvider = selectPreferredProvider();
-			if(preferredProvider == null)
-				throw new AssertionError();
+			preferredProviderSet = true;
 			MinecraftForge.EVENT_BUS.post(new PreferredProviderUpdateEvent());
 		}
 		return preferredProvider;
@@ -100,6 +102,9 @@ public final class XPFluidAPI_v1 {
 			for(Fluid f2 : providers.keySet())
 				if(f2 == FluidRegistry.getFluid(f2.getName()))
 					fluidNames.add(f2.getName());
+			
+			if(fluidNames.size() == 0)
+				return null;
 			
 			List<String> fluidNameList = new ArrayList<>(fluidNames);
 			value = fluidNameList.get(new Random().nextInt(fluidNameList.size()));
