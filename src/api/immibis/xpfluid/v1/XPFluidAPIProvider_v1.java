@@ -53,7 +53,7 @@ public class XPFluidAPIProvider_v1 {
 		if(result.getFluid() != fluid) {
 			if(result.fluid == fluid)
 				// This Fluid was overridden in the FluidRegistry by another mod's Fluid with the same name
-				throw new IllegalArgumentException("You're calling into a fluid API provider for a non-default fluid.");
+				throw new IllegalArgumentException("You're calling into a fluid API provider for a non-default version of "+fluid.getName()+".");
 			
 			throw new AssertionError("The creator of "+fluid.getName()+" fucked up their createFluidStackInternal implementation.");
 		}
