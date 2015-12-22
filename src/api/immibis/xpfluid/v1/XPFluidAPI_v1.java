@@ -1,11 +1,25 @@
 package api.immibis.xpfluid.v1;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.LoaderState;
+import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
+import cpw.mods.fml.common.eventhandler.Event;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.common.ForgeModContainer;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 /**
@@ -18,57 +32,81 @@ public final class XPFluidAPI_v1 {
 	
 	private static Map<Fluid, XPFluidAPIProvider_v1> providers = new IdentityHashMap<>();
 	
+	private static XPFluidAPIProvider_v1 preferredProvider = null;
+	
+	static {
+		FMLCommonHandler.instance().bus().register(new Object() {
+			@SubscribeEvent
+			public void resetDefaultFluid(FMLServerAboutToStartEvent evt) {
+				preferredProvider = null;
+			}
+		});
+	}
+	
 	/**
 	 * Call this during init to register your provider.
 	 * Calling it in preinit is discouraged unless you need to override another mod's provider
 	 * (registered in init) for some reason.
 	 */
-	public static void addProvider(final Fluid fluid, final XPFluidAPIProvider_v1 provider) {
+	public static void addProvider(final XPFluidAPIProvider_v1 provider) {
 		if(provider == null)
-			throw new IllegalArgumentException("provider is null");
-		if(fluid == null)
-			throw new IllegalArgumentException("fluid is null");
+			throw new IllegalArgumentException("Provider is null");
 		
 		if(Loader.instance().hasReachedState(LoaderState.POSTINITIALIZATION))
 			throw new IllegalStateException("Providers must be registered in init stage or earlier");
 		
-		if(providers.containsKey(fluid))
-			throw new IllegalStateException("Fluid already registered: "+fluid+" ("+fluid.getName()+")");
+		if(providers.containsKey(provider.getFluid()))
+			throw new IllegalStateException("Fluid already registered: "+provider.getFluid()+" ("+provider.getFluid().getName()+")");
 		
-		providers.put(fluid, new XPFluidAPIProvider_v1() {
-			@SuppressWarnings("deprecation")
-			@Override
-			public XPToFluidResult convertXPToFluid(int xp) {
-				XPToFluidResult result = provider.convertXPToFluid(xp);
-				
-				if(result == null)
-					throw new AssertionError("Provider "+provider.getClass().getName()+" returned null from convertXPToFluid for: "+fluid);
-				
-				if(result.fluidReturned != null) {
-					if(result.fluidReturned.fluid != fluid)
-						throw new AssertionError("Provider "+provider.getClass().getName()+" returned wrong fluid "+result.fluidReturned.fluid+" from convertXPToFluid (instead of "+fluid+")");
-					if(result.fluidReturned.getFluid() != fluid)
-						throw new AssertionError("Provider returned non-default fluid "+result.fluidReturned.fluid+" (overridden by "+result.fluidReturned.getFluid()+"). This most likely indicates that a non-default fluid was passed to LiquidXPAPI_v1.convertXPToFluid.");
-				}
-				
-				return result;
+		providers.put(provider.getFluid(), provider);
+	}
+	
+	/**
+	 * Returns the provider that has been selected as the user's or modpack builder's favourite
+	 * type of XP fluid. This can be configured by setting preferredXPFluid in forge.cfg to the
+	 * name of a registered fluid. 
+	 */
+	public static XPFluidAPIProvider_v1 getPreferredProvider() {
+		if(preferredProvider == null) {
+			if(!Loader.instance().hasReachedState(LoaderState.POSTINITIALIZATION))
+				throw new IllegalStateException("Preferred provider may be retrieved after init stage");
+			if(providers.size() == 0) {
+				return null;
 			}
+			preferredProvider = selectPreferredProvider();
+			if(preferredProvider == null)
+				throw new AssertionError();
+			MinecraftForge.EVENT_BUS.post(new PreferredProviderUpdateEvent());
+		}
+		return preferredProvider;
+	}
+	
+	private static XPFluidAPIProvider_v1 selectPreferredProvider() {
+		Configuration config = ForgeModContainer.getConfig();
+		Property p = config.get(Configuration.CATEGORY_GENERAL, "preferredXPFluid", "randomize");
+		String value = p.getString();
+		
+		Fluid f = FluidRegistry.getFluid(value);
+		if(f == null || !providers.containsKey(f))
+			value = "randomize";
+		
+		if(value.equals("randomize")) {
+			Set<String> fluidNames = new HashSet<>();
+			for(Fluid f2 : providers.keySet())
+				if(f2 == FluidRegistry.getFluid(f2.getName()))
+					fluidNames.add(f2.getName());
 			
-			@Override
-			public FluidToXPResult convertFluidToXP(FluidStack fluid) {
-				FluidToXPResult result = provider.convertFluidToXP(fluid);
-				
-				if(result == null)
-					throw new AssertionError("Provider "+provider.getClass().getName()+" returned null from convertFluidToXP for: "+fluid);
-
-				return result;
-			}
-
-			@Override
-			public boolean isXPFluid(FluidStack testFluid) {
-				return provider.isXPFluid(testFluid);
-			}
-		});
+			List<String> fluidNameList = new ArrayList<>(fluidNames);
+			value = fluidNameList.get(new Random().nextInt(fluidNameList.size()));
+			
+			f = FluidRegistry.getFluid(value);
+			
+			p.set(value);
+			if(config.hasChanged())
+				config.save();
+		}
+		
+		return providers.get(f);
 	}
 	
 	public static Fluid[] getXPFluids() {
@@ -77,87 +115,8 @@ public final class XPFluidAPI_v1 {
 		return providers.keySet().toArray(new Fluid[0]);
 	}
 	
-	public static final class XPToFluidResult {
-		public final int xpUsed;
-		public final FluidStack fluidReturned;
-		
-		public XPToFluidResult(int xp, FluidStack fluid) {
-			if(fluid != null) {
-				if(fluid.amount == 0)
-					fluid = null;
-				else if(fluid.amount < 0)
-					throw new IllegalArgumentException("negative fluid amount "+fluid.amount);
-			}
-			
-			if(xp < 0)
-				throw new IllegalArgumentException("negative XP amount "+xp);
-			
-			if((xp == 0) != (fluid == null))
-				throw new IllegalArgumentException(); // zero XP is allowed if-and-only-if zero fluid
-			
-			this.xpUsed = xp;
-			this.fluidReturned = fluid;
-		}
-		
-		public static final XPToFluidResult ZERO = new XPToFluidResult(0, null);
-	}
-	
-	public static final class FluidToXPResult {
-		public final int fluidUsed;
-		public final int xpReturned;
-		
-		public FluidToXPResult(int fluid, int xp) {
-			this.fluidUsed = fluid;
-			this.xpReturned = xp;
-			if(xp < 0 || fluid < 0)
-				throw new IllegalArgumentException();
-			if((xp == 0) != (fluid == 0))
-				throw new IllegalArgumentException(); // zero XP is allowed if-and-only-if zero fluid
-		}
-		
-		public static final FluidToXPResult ZERO = new FluidToXPResult(0, 0);
-	}
-	
-	/**
-	 * Converts XP into a fluid. You MUST specify the target fluid - generally,
-	 * this is either your own mod's fluid, or it's configurable.
-	 * 
-	 * The target fluid MUST be one contained in the array that getXPFluids() returns.
-	 * It also MUST be a "default fluid" - i.e. one that FluidRegistry.getFluid might return.
-	 * (If multiple mods register fluids with the same name, only one of them will be default.
-	 * This is also saved per-world and per-server, so it can change when loading a world)
-	 * 
-	 * xpAmount must be positive.
-	 */
-	public static XPToFluidResult convertXPToFluid(Fluid targetFluid, int xpAmount) {
-		if(xpAmount <= 0)
-			throw new IllegalArgumentException("xp amount "+xpAmount);
-		
-		XPFluidAPIProvider_v1 provider = providers.get(targetFluid);
-		if(provider == null)
-			throw new IllegalArgumentException("Fluid not registered: "+targetFluid);
-
-		return provider.convertXPToFluid(xpAmount);
-	}
-	
-	/**
-	 * Converts a fluid back into XP.
-	 * 
-	 * In case the given amount of fluid doesn't represent an integer amount of XP, this will
-	 * round down.
-	 * 
-	 * Returns the amount of fluid actually used, as well as the amount of XP, in case of rounding.
-	 * 
-	 * Returns null if this is not a recognized XP fluid.
-	 */
-	public static FluidToXPResult convertFluidToXP(FluidStack fluid) {
-		XPFluidAPIProvider_v1 provider = providers.get(fluid.getFluid());
-		if(provider != null) {
-			if(provider.isXPFluid(fluid)) {
-				return provider.convertFluidToXP(fluid);
-			}
-		}
-		return null;
+	public static XPFluidAPIProvider_v1 getProvider(Fluid f) {
+		return providers.get(f);
 	}
 	
 	/**
@@ -170,4 +129,13 @@ public final class XPFluidAPI_v1 {
 		}
 		return false;
 	}
+
+	public static boolean isXPFluid(Fluid fluid) {
+		return providers.containsKey(fluid);
+	}
+	
+	/**
+	 * Fired on the Forge event bus after the preferred provider is selected or read from configuration.
+	 */
+	public static class PreferredProviderUpdateEvent extends Event {}
 }
