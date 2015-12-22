@@ -14,6 +14,7 @@ import cpw.mods.fml.common.LoaderState;
 import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
 import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
@@ -38,6 +39,10 @@ public final class XPFluidAPI_v1 {
 		FMLCommonHandler.instance().bus().register(new Object() {
 			@SubscribeEvent
 			public void resetDefaultFluid(FMLServerAboutToStartEvent evt) {
+				preferredProvider = null;
+			}
+			@SubscribeEvent
+			public void resetDefaultFluid(FMLNetworkEvent.ClientConnectedToServerEvent evt) {
 				preferredProvider = null;
 			}
 		});
