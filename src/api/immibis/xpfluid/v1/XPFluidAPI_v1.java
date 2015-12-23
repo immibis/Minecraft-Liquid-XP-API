@@ -8,13 +8,18 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
+
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.LoadController;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.LoaderState;
 import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
 import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
+import cpw.mods.fml.relauncher.ReflectionHelper;
 import net.minecraftforge.common.ForgeModContainer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
@@ -36,17 +41,29 @@ public final class XPFluidAPI_v1 {
 	private static XPFluidAPIProvider_v1 preferredProvider = null;
 	private static boolean preferredProviderSet = false;
 	
+	/** This has to be public because Forge. Don't use it. */
+	public static class EventHandler {
+		@Subscribe
+		public void resetDefaultFluid(FMLServerAboutToStartEvent evt) {
+			preferredProviderSet = false;
+		}
+		@SubscribeEvent
+		public void resetDefaultFluid(FMLNetworkEvent.ClientConnectedToServerEvent evt) {
+			preferredProviderSet = false;
+		}
+		EventHandler() {}
+	}
+	
 	static {
-		FMLCommonHandler.instance().bus().register(new Object() {
-			@SubscribeEvent
-			public void resetDefaultFluid(FMLServerAboutToStartEvent evt) {
-				preferredProviderSet = false;
-			}
-			@SubscribeEvent
-			public void resetDefaultFluid(FMLNetworkEvent.ClientConnectedToServerEvent evt) {
-				preferredProviderSet = false;
-			}
-		});
+		EventHandler handler = new EventHandler();
+		
+		FMLCommonHandler.instance().bus().register(handler);
+		
+		// FMLServerAboutToStartEvents fire on this bus
+		
+		LoadController c = ReflectionHelper.getPrivateValue(Loader.class, Loader.instance(), "modController");
+		EventBus eb = ReflectionHelper.getPrivateValue(LoadController.class, c, "masterChannel");
+		eb.register(handler);
 	}
 	
 	/**
@@ -148,4 +165,15 @@ public final class XPFluidAPI_v1 {
 	 * Fired on the Forge event bus after the preferred provider is selected or read from configuration.
 	 */
 	public static class PreferredProviderUpdateEvent extends Event {}
+
+	public static XPFluidAPIProvider_v1 getProvider(FluidStack stack) {
+		if(stack == null)
+			return null;
+		XPFluidAPIProvider_v1 provider = getProvider(stack.getFluid());
+		if(provider == null)
+			return null;
+		if(!provider.isXPFluid(stack))
+			return null;
+		return provider;
+	}
 }
