@@ -1,13 +1,8 @@
 package api.immibis.xpfluid.v1;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
+import com.google.common.base.Joiner;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
@@ -107,7 +102,20 @@ public final class XPFluidAPI_v1 {
 	
 	private static XPFluidAPIProvider_v1 selectPreferredProvider() {
 		Configuration config = ForgeModContainer.getConfig();
-		Property p = config.get(Configuration.CATEGORY_GENERAL, "preferredXPFluid", "randomize");
+		
+		Set<String> fluidNames = new HashSet<>();
+		for(Fluid f2 : providers.keySet())
+			if(f2 == FluidRegistry.getFluid(f2.getName()))
+				fluidNames.add(f2.getName());
+		
+		if(fluidNames.size() == 0)
+			return null;
+		
+		List<String> fluidNameList = new ArrayList<>(fluidNames);
+		Collections.sort(fluidNameList);
+		
+		String comment = "Possible values: "+Joiner.on(", ").join(fluidNameList);
+		Property p = config.get(Configuration.CATEGORY_GENERAL, "preferredXPFluid", "randomize", comment);
 		String value = p.getString();
 		
 		Fluid f = FluidRegistry.getFluid(value);
@@ -115,23 +123,15 @@ public final class XPFluidAPI_v1 {
 			value = "randomize";
 		
 		if(value.equals("randomize")) {
-			Set<String> fluidNames = new HashSet<>();
-			for(Fluid f2 : providers.keySet())
-				if(f2 == FluidRegistry.getFluid(f2.getName()))
-					fluidNames.add(f2.getName());
-			
-			if(fluidNames.size() == 0)
-				return null;
-			
-			List<String> fluidNameList = new ArrayList<>(fluidNames);
 			value = fluidNameList.get(new Random().nextInt(fluidNameList.size()));
 			
 			f = FluidRegistry.getFluid(value);
 			
 			p.set(value);
-			if(config.hasChanged())
-				config.save();
 		}
+		
+		if(config.hasChanged())
+			config.save();
 		
 		return providers.get(f);
 	}
