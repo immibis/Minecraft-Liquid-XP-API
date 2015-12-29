@@ -77,6 +77,8 @@ public final class XPFluidAPI_v1 {
 			throw new IllegalStateException("Fluid already registered: "+provider.getFluid()+" ("+provider.getFluid().getName()+")");
 		
 		providers.put(provider.getFluid(), provider);
+		
+		MinecraftForge.EVENT_BUS.post(new ProviderRegisterEvent(provider));
 	}
 	
 	/**
@@ -143,7 +145,15 @@ public final class XPFluidAPI_v1 {
 	}
 	
 	public static XPFluidAPIProvider_v1 getProvider(Fluid f) {
+		if(!Loader.instance().hasReachedState(LoaderState.POSTINITIALIZATION))
+			throw new IllegalStateException("Providers may be retrieved after init stage");
 		return providers.get(f);
+	}
+	
+	public static XPFluidAPIProvider_v1[] getAllProviders() {
+		if(!Loader.instance().hasReachedState(LoaderState.POSTINITIALIZATION))
+			throw new IllegalStateException("Provider list may be retrieved after init stage");
+		return providers.values().toArray(new XPFluidAPIProvider_v1[0]);
 	}
 	
 	/**
@@ -165,6 +175,16 @@ public final class XPFluidAPI_v1 {
 	 * Fired on the Forge event bus after the preferred provider is selected or read from configuration.
 	 */
 	public static class PreferredProviderUpdateEvent extends Event {}
+
+	/**
+	 * Fired on the Forge event bus after a provider is registered.
+	 */
+	public static class ProviderRegisterEvent extends Event {
+		public final XPFluidAPIProvider_v1 provider;
+		public ProviderRegisterEvent(XPFluidAPIProvider_v1 provider) {
+			this.provider = provider;
+		}
+	}
 
 	public static XPFluidAPIProvider_v1 getProvider(FluidStack stack) {
 		if(stack == null)
