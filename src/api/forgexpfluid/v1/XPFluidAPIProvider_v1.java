@@ -1,10 +1,10 @@
-package api.immibis.xpfluid.v1;
+package api.forgexpfluid.v1;
 
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 
 /**
- * DO NOT MODIFY THIS FILE. EVER.
+ * Once the API is released, DO NOT MODIFY THIS FILE. EVER.
  */
 public class XPFluidAPIProvider_v1 {
 	

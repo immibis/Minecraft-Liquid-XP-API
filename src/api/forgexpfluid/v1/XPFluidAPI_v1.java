@@ -1,4 +1,4 @@
-package api.immibis.xpfluid.v1;
+package api.forgexpfluid.v1;
 
 import java.util.*;
 
@@ -24,9 +24,9 @@ import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 /**
- * Main entry point to the XP Fluid API.
+ * Main entry point to the Forge XP Fluid API, version 1.
  * 
- * DO NOT MODIFY THIS FILE. EVER. Except for comments.
+ * Once the API is released, DO NOT MODIFY THIS FILE. EVER. Except for comments.
  */
 public final class XPFluidAPI_v1 {
 	private XPFluidAPI_v1() {throw new RuntimeException();}
