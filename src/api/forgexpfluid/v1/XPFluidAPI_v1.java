@@ -132,8 +132,9 @@ public final class XPFluidAPI_v1 {
 			p.set(value);
 		}
 		
-		if(config.hasChanged())
-			config.save();
+		// Forge provides no way to determine whether the comment has changed.
+		// So if the comment *might* have changed, we have to save regardless.
+		config.save();
 		
 		return providers.get(f);
 	}
