@@ -44,8 +44,6 @@ public class XPFluidAPIProvider_v1 {
 	public final FluidStack createFluidStack(int amount) {
 		if(amount < 0)
 			throw new IllegalArgumentException("amount < 0: " + amount);
-		if(amount == 0)
-			return null;
 		
 		FluidStack result = createFluidStackInternal(amount);
 		if(result == null)
